@@ -11,9 +11,6 @@ services:
   gst:
     image: docker-tegra-gst:latest
     init: true
-    build:
-      context: ../docker-tegra-gst
-      dockerfile: Dockerfile
     command: /src/start.py
     # only for strace and debugging
     # security_opt:  
