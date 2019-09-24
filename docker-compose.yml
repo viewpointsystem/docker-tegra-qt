@@ -1,0 +1,92 @@
+version: "3.7"
+volumes:
+    xauth:
+    x11-unix:
+services:
+  dbus:
+    image: docker-tegra-dbus:latest
+    init: true
+    volumes:
+      - dbus:/tmp/dbus
+  gst:
+    image: docker-tegra-gst:latest
+    init: true
+    build:
+      context: ../docker-tegra-gst
+      dockerfile: Dockerfile
+    command: /src/start.py
+    # only for strace and debugging
+    # security_opt:  
+    #   - seccomp:unconfined
+    # privileged: true
+    devices:
+      - /dev/nvhost-ctrl
+      - /dev/nvhost-ctrl-isp
+      - /dev/nvhost-ctrl-gpu
+      - /dev/nvhost-prof-gpu
+      - /dev/nvmap
+      - /dev/nvhost-gpu
+      - /dev/nvhost-as-gpu
+      - /dev/nvhost-vic
+      - /dev/nvhost-vi 
+      - /dev/nvhost-isp
+      - /dev/nvhost-tsec
+      - /dev/nvhost-sched-gpu
+      - /dev/tegra_dc_ctrl
+      - /dev/tegra_dc_0
+      - /dev/fb0
+      - /dev/nvhost-msenc
+      - /dev/nvhost-nvjpg
+      - /dev/nvhost-nvdec
+    volumes:
+      - /usr/lib/aarch64-linux-gnu/tegra/:/usr/lib/aarch64-linux-gnu/tegra:ro
+      - /usr/lib/aarch64-linux-gnu/tegra-egl:/usr/lib/aarch64-linux-gnu/tegra-egl:ro
+      - /usr/local/cuda:/usr/local/cuda:ro
+      - ../docker-tegra-gst/src:/src   
+      - dbus:/tmp/dbus
+    environment:
+      - LD_LIBRARY_PATH=/usr/local/lib:/usr/local/cuda/lib64:/usr/lib/aarch64-linux-gnu:/usr/lib/aarch64-linux-gnu/tegra:/usr/lib/aarch64-linux-gnu/tegra-egl
+    depends_on:
+      - dbus
+  qt:
+    ipc: host
+    network_mode: "host"
+    image: "tegra-qt"
+    build:
+      context: .
+      dockerfile: Dockerfile
+    devices:
+      - /dev/tegra_dc_ctrl
+      - /dev/tegra_dc_0
+      - /dev/fb0
+      - /dev/input
+      - /dev/nvhost-ctrl
+      - /dev/nvhost-ctrl-gpu
+      - /dev/nvhost-prof-gpu
+      - /dev/nvmap
+      - /dev/nvhost-gpu
+      - /dev/nvhost-vic
+      - /dev/nvhost-as-gpu
+    volumes:
+      - /usr/lib/aarch64-linux-gnu/tegra:/usr/lib/aarch64-linux-gnu/tegra:ro
+      - /usr/lib/aarch64-linux-gnu/tegra-egl:/usr/lib/aarch64-linux-gnu/tegra-egl:ro
+      - /run/udev:/run/udev:ro
+      - dbus:/tmp/dbus
+      # - ./src:/src
+    environment:
+    #- DISPLAY=:0
+    #- XAUTHORITY=/tmp/.X11-app
+      - LD_LIBRARY_PATH=/usr/local/lib:/usr/lib/aarch64-linux-gnu/tegra:/usr/lib/aarch64-linux-gnu/tegra-egl:/usr/local/cuda/lib64:/usr/lib/aarch64-linux-gnu
+      - QT_QPA_EGLFS_INTEGRATION=eglfs_kms_egldevice
+      - QT_QPA_PLATFORM=eglfs
+      - QT_QPA_EGLFS_WIDTH=1280
+      - QT_QPA_EGLFS_HEIGHT=720
+      - QUAMASH_QTIMPL=PySide2
+      - DBUS_SESSION_BUS_ADDRESS
+    depends_on:
+      - dbus
+      - gst
+    command: ["/src/main.py"]
+
+volumes:
+  dbus: {}
